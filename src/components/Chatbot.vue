@@ -43,31 +43,73 @@
       </div>
     </div>
     <div>
-      <input type="text" v-model="message"/>
+      <div class="suggestions">
+        <div class="suggestion" v-for="sugg in suggestions" v-bind:key="sugg.title">
+          <button v-on:click="setSuggestion('blabla')">{{sugg.title}}</button>
+        </div>
+      </div>
+      <input type="text" v-model="message" placeholder="..."/>
       <button v-on:click="add(message)">ADD</button>
     </div>
   </div>
 </template>
 
 <script>
+import * as Dialogflow from '../dialogflow'
 export default {
   name: 'Chatbot',
   data () {
     return {
       displays: [],
-      message: 'Hello'
+      suggestions: [],
+      message: ''
     }
   },
   methods: {
+    addBotMessage(message){
+      this.displays.push({
+          message: message,
+          who: 'bot'
+        })
+    },
+    addSuggestions(suggestions){
+      this.suggestions = suggestions
+    },
+    setSuggestion(message){
+      console.log(message)
+      this.suggestions = []
+      this.add(message)
+    },
+    displayResponse(res) {
+      switch(res.type){
+        case "simple_response":
+          this.addBotMessage(res.textToSpeech)
+          break;
+        case "suggestion_chips":
+          this.addSuggestions(res.suggestions)
+          break;
+        case 0:
+          this.addBotMessage(res.speech)
+          break;
+      }
+      
+    },
+    askChatbot(req) {
+      Dialogflow.askChatbot(req)
+      .then(responses => {
+        responses.forEach(res => {
+          this.displayResponse(res)
+        });
+        
+      })
+    },
     add(message) {
       this.displays.push({
         message: message,
         who: 'person'
       })
-      this.displays.push({
-        message: 'Réponse',
-        who: 'bot'
-      })
+      this.askChatbot(message)
+      this.message = ''
     }
   }
 }
