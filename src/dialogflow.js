@@ -41,7 +41,6 @@ export function requestEventChatbot(req) {
     .then(res => {
         return clearChatbotResponse(res)
     })
-    .then(addMessagesFromChatbot)
     .catch(err => {
             console.log(err);
         })

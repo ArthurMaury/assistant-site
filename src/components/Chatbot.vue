@@ -65,6 +65,9 @@ export default {
       message: ""
     };
   },
+  created(){
+    this.askChatbotEvent('WELCOME')
+  },
   methods: {
     addBotMessage(message) {
       this.displays.push({
@@ -78,6 +81,14 @@ export default {
     selectSuggestion(message) {
       this.suggestions = [];
       this.send(message);
+    },
+    displayResponses(responses) {
+      try {
+        responses.forEach(this.displayResponse)
+      } catch (error) {
+        console.log(error)
+        this.addBotMessage("Désolé, il y a eu un problème de connexion au Chatbot")
+      }
     },
     displayResponse(res) {
       switch (res.type) {
@@ -93,14 +104,21 @@ export default {
       }
     },
     askChatbot(req) {
-      Dialogflow.askChatbot(req).then(responses => {
-        responses.forEach(res => {
-          this.displayResponse(res);
-        });
+      this.addAwaiter();
+      Dialogflow.askChatbot(req)
+      .then(res => {
+        this.removeAwaiter();
+        this.displayResponses(res)
       });
     },
     askChatbotEvent(req) {
-      Dialogflow.requestEventChatbot(req).then(displayResponse);
+      Dialogflow.requestEventChatbot(req).then(this.displayResponses);
+    },
+    addAwaiter(){
+      this.addBotMessage('...') // TODO improve
+    },
+    removeAwaiter(){
+      this.displays.pop()
     },
     send(message) {
       this.displays.push({
