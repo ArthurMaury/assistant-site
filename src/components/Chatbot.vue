@@ -27,6 +27,10 @@
   border-color: #8888dd;
   color: #000033;
 }
+.suggestion {
+  display: inline-block;
+  margin: 10px;
+}
 </style>
 
 <template>
@@ -48,6 +52,7 @@
           <button v-on:click="selectSuggestion(title)">{{title}}</button>
         </div>
       </div>
+      <div v-if="awaiting">Waiting...</div>
       <input type="text" v-model="message" placeholder="..." @keyup.enter="send(message)"/>
       <button v-on:click="send(message)">Envoyer</button>
     </div>
@@ -62,11 +67,12 @@ export default {
     return {
       displays: [],
       suggestions: [],
-      message: ""
+      message: "",
+      awaiting: true
     };
   },
-  created(){
-    this.askChatbotEvent('WELCOME')
+  created() {
+    this.askChatbotEvent("WELCOME");
   },
   methods: {
     addBotMessage(message) {
@@ -83,12 +89,7 @@ export default {
       this.send(message);
     },
     displayResponses(responses) {
-      try {
-        responses.forEach(this.displayResponse)
-      } catch (error) {
-        console.log(error)
-        this.addBotMessage("Désolé, il y a eu un problème de connexion au Chatbot")
-      }
+      responses.forEach(this.displayResponse);
     },
     displayResponse(res) {
       switch (res.type) {
@@ -104,21 +105,35 @@ export default {
       }
     },
     askChatbot(req) {
-      this.addAwaiter();
+      this.addAwaiter()
       Dialogflow.askChatbot(req)
-      .then(res => {
-        this.removeAwaiter();
-        this.displayResponses(res)
-      });
+        .catch(err => {
+          this.addBotMessage(
+            "Désolé, il y a eu un problème de connexion au Chatbot"
+          );
+        })
+        .then(res => {
+          this.displayResponses(res);
+        })
+        .catch(err => {
+          console.log(err)
+        })
+        .then(this.removeAwaiter)
     },
     askChatbotEvent(req) {
-      Dialogflow.requestEventChatbot(req).then(this.displayResponses);
+      this.addAwaiter()
+      Dialogflow.requestEventChatbot(req)
+      .then(this.displayResponses)
+        .catch(err => {
+          console.log(err)
+        })
+        .then(this.removeAwaiter)
     },
-    addAwaiter(){
-      this.addBotMessage('...') // TODO improve
+    addAwaiter() {
+      this.awaiting = true
     },
-    removeAwaiter(){
-      this.displays.pop()
+    removeAwaiter() {
+      this.awaiting = false
     },
     send(message) {
       this.displays.push({
